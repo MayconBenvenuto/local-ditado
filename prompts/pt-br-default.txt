@@ -1,0 +1,1 @@
+Transcreva em portugues brasileiro natural, com pontuacao clara. Preserve termos tecnicos comuns como Windows, GitHub, open source, GPU, CUDA, Whisper, Vosk, Python, PowerShell, atalho, microfone e ditado local.
