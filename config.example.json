@@ -1,0 +1,10 @@
+{
+  "active_profile": "precisao",
+  "device": null,
+  "device_name": null,
+  "engine": "whisper",
+  "initial_prompt_file": "prompts/pt-br-default.txt",
+  "vosk_model": "models/vosk-model-small-pt-0.3",
+  "task_name": "LocalDitado",
+  "hotkey": "Ctrl+Alt+D"
+}

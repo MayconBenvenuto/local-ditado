@@ -19,8 +19,10 @@
 ## Perfil recomendado atual
 
 ```powershell
-pythonw dictado_hotkey.py --device-name "External Mic" --engine whisper --whisper-model small --whisper-device cuda --whisper-compute-type int8_float16 --silence-seconds 2.5 --beam-size 5
+pythonw dictado_hotkey.py --config .\config.json
 ```
+
+Use `active_profile` em `config.json` para alternar entre `precisao`, `equilibrado` e `rapido`.
 
 ## Experimentos seguros
 
@@ -30,6 +32,8 @@ Para reduzir latência sem derrubar muito a precisão:
 - Manter `--whisper-model small`
 - Manter `--beam-size 5`
 - Manter GPU com `--whisper-device cuda`
+
+No MVP, isso corresponde a editar `profiles/equilibrado.json` ou usar o perfil `equilibrado`.
 
 Para máxima precisão:
 

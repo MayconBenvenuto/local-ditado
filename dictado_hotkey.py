@@ -15,6 +15,8 @@ import pyaudio
 import winsound
 from vosk import KaldiRecognizer, Model, SetLogLevel
 
+from localditado_config import DEFAULT_CONFIG_PATH, load_settings
+
 
 def configure_nvidia_dll_paths() -> list[str]:
     dll_dirs: list[str] = []
@@ -169,7 +171,7 @@ def paste_text(target_hwnd: int, text: str) -> None:
     user32.keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0)
 
 
-def find_input_device(pa: pyaudio.PyAudio, device_name: str | None) -> int | None:
+def find_input_device(pa: pyaudio.PyAudio, device_name: str | None, sample_rate: int) -> int | None:
     if not device_name:
         return None
 
@@ -182,7 +184,7 @@ def find_input_device(pa: pyaudio.PyAudio, device_name: str | None) -> int | Non
         if channels <= 0 or needle not in name.lower():
             continue
         default_rate = int(info.get("defaultSampleRate", 0))
-        score = 0 if default_rate == SAMPLE_RATE else abs(default_rate - SAMPLE_RATE)
+        score = 0 if default_rate == sample_rate else abs(default_rate - sample_rate)
         matches.append((score, index, name))
 
     if not matches:
@@ -219,6 +221,8 @@ class DictationService:
         beam_size: int,
         cpu_threads: int,
         initial_prompt: str | None,
+        sample_rate: int,
+        speech_rms_threshold: int,
     ):
         self.device_index = device_index
         self.device_name = device_name
@@ -231,6 +235,8 @@ class DictationService:
         self.beam_size = beam_size
         self.cpu_threads = cpu_threads
         self.initial_prompt = initial_prompt
+        self.sample_rate = sample_rate
+        self.speech_rms_threshold = speech_rms_threshold
         self.whisper_model = None
         self.vosk_model = None
         self.lock = threading.Lock()
@@ -289,7 +295,7 @@ class DictationService:
     def resolve_device_index(self, pa: pyaudio.PyAudio) -> int | None:
         device_index = self.device_index
         if device_index is None:
-            device_index = find_input_device(pa, self.device_name)
+            device_index = find_input_device(pa, self.device_name, self.sample_rate)
         if device_index is None:
             info = pa.get_default_input_device_info()
             logging.info("Microfone padrao selecionado: %s (%s)", info.get("index"), info.get("name"))
@@ -309,7 +315,7 @@ class DictationService:
         stream = None
         try:
             device_index = self.resolve_device_index(pa)
-            stream = open_stream(pa, device_index, SAMPLE_RATE)
+            stream = open_stream(pa, device_index, self.sample_rate)
             frames: list[bytes] = []
             heard_speech = False
             last_speech_at = time.monotonic()
@@ -317,7 +323,7 @@ class DictationService:
             while not stop_event.is_set():
                 data = stream.read(4000, exception_on_overflow=False)
                 frames.append(data)
-                if rms_level(data) >= SPEECH_RMS_THRESHOLD:
+                if rms_level(data) >= self.speech_rms_threshold:
                     heard_speech = True
                     last_speech_at = time.monotonic()
 
@@ -331,7 +337,7 @@ class DictationService:
             with wave.open(str(wav_path), "wb") as wav:
                 wav.setnchannels(1)
                 wav.setsampwidth(pa.get_sample_size(pyaudio.paInt16))
-                wav.setframerate(SAMPLE_RATE)
+                wav.setframerate(self.sample_rate)
                 wav.writeframes(b"".join(frames))
             return wav_path
         finally:
@@ -377,8 +383,8 @@ class DictationService:
         stream = None
         try:
             device_index = self.resolve_device_index(pa)
-            stream = open_stream(pa, device_index, SAMPLE_RATE)
-            recognizer = KaldiRecognizer(self.vosk_model, SAMPLE_RATE)
+            stream = open_stream(pa, device_index, self.sample_rate)
+            recognizer = KaldiRecognizer(self.vosk_model, self.sample_rate)
             chunks: list[str] = []
 
             while not stop_event.is_set():
@@ -433,6 +439,17 @@ def message_loop(service: DictationService) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Servico de ditado local com hotkey.")
     parser.add_argument(
+        "--config",
+        type=Path,
+        default=DEFAULT_CONFIG_PATH,
+        help="Arquivo config.json local.",
+    )
+    parser.add_argument(
+        "--profile",
+        default=None,
+        help="Perfil em profiles/. Exemplo: precisao, equilibrado, rapido.",
+    )
+    parser.add_argument(
         "--device",
         type=int,
         default=None,
@@ -446,53 +463,65 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--model",
         type=Path,
-        default=DEFAULT_MODEL_PATH,
+        default=None,
         help="Pasta do modelo Vosk.",
     )
     parser.add_argument(
         "--engine",
         choices=("whisper", "vosk"),
-        default="vosk",
+        default=None,
         help="Motor de transcricao.",
     )
     parser.add_argument(
         "--whisper-model",
-        default="small",
+        default=None,
         help="Modelo do faster-whisper. Exemplo: small, medium.",
     )
     parser.add_argument(
         "--whisper-device",
-        default="cpu",
+        default=None,
         help="Dispositivo do faster-whisper: cpu, cuda ou auto.",
     )
     parser.add_argument(
         "--whisper-compute-type",
-        default="int8",
+        default=None,
         help="Precisao do faster-whisper. Use int8 para CPU.",
     )
     parser.add_argument(
         "--silence-seconds",
         type=float,
-        default=DEFAULT_SILENCE_SECONDS_TO_AUTO_STOP,
+        default=None,
         help="Segundos de silencio para finalizar automaticamente.",
     )
     parser.add_argument(
         "--beam-size",
         type=int,
-        default=5,
+        default=None,
         help="Beam size do Whisper. 5 tende a ser mais preciso; 1 pode ser mais rapido.",
     )
     parser.add_argument(
         "--cpu-threads",
         type=int,
-        default=8,
+        default=None,
         help="Threads de CPU para o Whisper.",
     )
     parser.add_argument(
         "--initial-prompt-file",
         type=Path,
-        default=DEFAULT_PROMPT_PATH,
+        default=None,
         help="Arquivo de prompt de contexto para melhorar a transcricao.",
+    )
+    parser.add_argument(
+        "--sample-rate",
+        type=int,
+        default=None,
+        help="Taxa de amostragem do microfone.",
+    )
+    parser.add_argument(
+        "--speech-rms-threshold",
+        type=int,
+        default=None,
+        help="Limiar RMS para detectar fala.",
     )
     return parser
 
@@ -501,31 +530,59 @@ def main() -> int:
     args = build_parser().parse_args()
     setup_logging()
 
-    model_path = args.model.resolve()
+    settings = load_settings(
+        args.config,
+        profile_name=args.profile,
+        overrides={
+            "device": args.device,
+            "device_name": args.device_name,
+            "vosk_model": str(args.model) if args.model else None,
+            "engine": args.engine,
+            "whisper_model": args.whisper_model,
+            "whisper_device": args.whisper_device,
+            "whisper_compute_type": args.whisper_compute_type,
+            "silence_seconds": args.silence_seconds,
+            "beam_size": args.beam_size,
+            "cpu_threads": args.cpu_threads,
+            "initial_prompt_file": str(args.initial_prompt_file) if args.initial_prompt_file else None,
+            "sample_rate": args.sample_rate,
+            "speech_rms_threshold": args.speech_rms_threshold,
+        },
+    )
+
+    model_path = Path(settings.get("vosk_model") or DEFAULT_MODEL_PATH).resolve()
+    engine = str(settings["engine"])
     if not model_path.exists() and args.engine == "vosk":
         logging.error("Modelo Vosk nao encontrado: %s", model_path)
         beep_error()
         return 2
-    if not model_path.exists() and args.engine == "whisper":
+    if not model_path.exists() and engine == "vosk":
+        logging.error("Modelo Vosk nao encontrado: %s", model_path)
+        beep_error()
+        return 2
+    if not model_path.exists() and engine == "whisper":
         logging.warning("Modelo Vosk fallback nao encontrado: %s", model_path)
 
     initial_prompt = None
-    if args.initial_prompt_file and args.initial_prompt_file.exists():
-        initial_prompt = args.initial_prompt_file.read_text(encoding="utf-8").strip()
-        logging.info("Prompt de contexto carregado: %s", args.initial_prompt_file)
+    initial_prompt_file = Path(settings["initial_prompt_file"])
+    if initial_prompt_file.exists():
+        initial_prompt = initial_prompt_file.read_text(encoding="utf-8").strip()
+        logging.info("Prompt de contexto carregado: %s", initial_prompt_file)
 
     service = DictationService(
-        device_index=args.device,
-        device_name=args.device_name,
+        device_index=settings.get("device"),
+        device_name=settings.get("device_name"),
         model_path=model_path,
-        engine=args.engine,
-        whisper_model=args.whisper_model,
-        whisper_device=args.whisper_device,
-        whisper_compute_type=args.whisper_compute_type,
-        silence_seconds=args.silence_seconds,
-        beam_size=args.beam_size,
-        cpu_threads=args.cpu_threads,
+        engine=engine,
+        whisper_model=str(settings["whisper_model"]),
+        whisper_device=str(settings["whisper_device"]),
+        whisper_compute_type=str(settings["whisper_compute_type"]),
+        silence_seconds=float(settings["silence_seconds"]),
+        beam_size=int(settings["beam_size"]),
+        cpu_threads=int(settings["cpu_threads"]),
         initial_prompt=initial_prompt,
+        sample_rate=int(settings["sample_rate"]),
+        speech_rms_threshold=int(settings["speech_rms_threshold"]),
     )
     register_hotkey()
     logging.info("Servico ativo. Atalho: Ctrl+Alt+D")

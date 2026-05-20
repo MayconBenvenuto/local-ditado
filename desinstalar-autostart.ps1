@@ -1,8 +1,10 @@
 $ErrorActionPreference = "Stop"
 
-$TaskName = "VoskLocalDictado"
+$TaskNames = @("LocalDitado", "LocalDitadoTray", "VoskLocalDictado")
 
-Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue
+foreach ($TaskName in $TaskNames) {
+  Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+  Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue
+}
 
-Write-Host "Ditado local removido do inicio do Windows."
+Write-Host "Local Ditado removido do inicio do Windows."

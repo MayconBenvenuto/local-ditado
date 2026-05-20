@@ -1,12 +1,17 @@
 # Roadmap
 
+## MVP implementado
+
+- Instalador guiado para Windows.
+- Configuração local em `config.json`.
+- Perfis `precisao`, `equilibrado` e `rapido`.
+- Diagnóstico de ambiente.
+- App de bandeja para controlar serviço e trocar perfil.
+- Execução com GPU/CUDA quando disponível.
+
 ## Próximas melhorias
 
-- Perfil `precisao`: Whisper small/medium com GPU, prompt de contexto e silêncio conservador.
-- Perfil `rapido`: Whisper base/small com GPU e silêncio menor.
-- Arquivo de configuração local em JSON.
-- Instalador para Windows com verificação automática de GPU/CUDA.
-- Ícone na bandeja do Windows para pausar, trocar perfil e ver status.
+- Melhorar o app de bandeja com notificações e seleção visual de microfone.
 - Tela simples para escolher microfone e atalho.
 - Benchmarks padronizados por modelo, GPU, CPU e duração do áudio.
 - Dicionário personalizado para termos frequentes.

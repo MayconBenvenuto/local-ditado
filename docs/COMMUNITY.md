@@ -16,6 +16,7 @@ Ditado Local é um projeto open source para ditado offline no Windows usando mod
 - GitHub Discussions para dúvidas, ideias e setups.
 - GitHub Issues para bugs reproduzíveis.
 - Wiki ou docs para tutoriais de instalação por hardware.
+- Tabela de hardware testado a partir de saídas do `python diagnostico.py --json`.
 
 ## Conteúdos para lançar
 
@@ -23,6 +24,7 @@ Ditado Local é um projeto open source para ditado offline no Windows usando mod
 - Demo curta: clicar em campo, apertar atalho, falar e colar.
 - Guia: "Como rodar Whisper local com GPU no Windows".
 - Chamada para testes: pedir resultados por GPU, CPU, microfone e idioma.
+- Post técnico: "Como corrigimos cuBLAS/cuDNN no Windows usando pacotes NVIDIA via pip".
 
 ## Categorias de discussão sugeridas
 
