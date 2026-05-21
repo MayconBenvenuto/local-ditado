@@ -1,30 +1,30 @@
 ---
 name: Bug report
-about: Reporte um erro reproduzível
+about: Report a reproducible error
 title: "[Bug]: "
 labels: bug
 assignees: ""
 ---
 
-## O que aconteceu?
+## What happened?
 
-Descreva o erro.
+Describe the error.
 
-## Como reproduzir
+## How to reproduce
 
 1.
 2.
 3.
 
-## Configuração
+## Configuration
 
-- Windows:
+- OS:
 - Python:
 - GPU:
-- Microfone:
-- Motor: Whisper ou Vosk
-- Modelo:
+- Microphone:
+- Engine: Whisper or Vosk
+- Model:
 
 ## Logs
 
-Cole apenas logs sem dados sensíveis.
+Paste only logs without sensitive data.

@@ -1,0 +1,15 @@
+{
+  "name": "local-ditado-app",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Interface desktop do Local Ditado (Tauri + sidecar Python).",
+  "type": "module",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}

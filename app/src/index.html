@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Local Ditado</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="logo">🎙️</div>
+          <div>
+            <div class="brand-name">Local Ditado</div>
+            <div class="brand-sub">offline · privado</div>
+          </div>
+        </div>
+        <nav>
+          <button class="nav-item active" data-view="dashboard">Painel</button>
+          <button class="nav-item" data-view="settings">Configurações</button>
+          <button class="nav-item" data-view="dictionary">Dicionário</button>
+          <button class="nav-item" data-view="history">Histórico</button>
+          <button class="nav-item" data-view="diagnostics">Diagnóstico</button>
+          <button class="nav-item" data-view="models">Modelos</button>
+        </nav>
+        <div class="conn">
+          <span id="conn-dot" class="dot off"></span>
+          <span id="conn-text">conectando…</span>
+        </div>
+      </aside>
+
+      <main class="content">
+        <!-- PAINEL -->
+        <section class="view active" id="view-dashboard">
+          <header><h1>Painel</h1><p class="muted">Dite em qualquer aplicativo com um atalho global.</p></header>
+
+          <div class="card mic-card">
+            <div class="meter"><div id="meter-fill" class="meter-fill"></div></div>
+            <button id="btn-dictate" class="btn-record">Ditar agora</button>
+            <p id="dictate-status" class="muted">pronto</p>
+          </div>
+
+          <div class="grid">
+            <div class="card stat"><span class="muted">Motor</span><strong id="stat-engine">—</strong></div>
+            <div class="card stat"><span class="muted">Perfil</span><strong id="stat-profile">—</strong></div>
+            <div class="card stat"><span class="muted">Atalho</span><strong id="stat-hotkey">—</strong></div>
+          </div>
+
+          <div class="card">
+            <h3>Última transcrição</h3>
+            <pre id="last-result" class="result">—</pre>
+          </div>
+        </section>
+
+        <!-- CONFIGURAÇÕES -->
+        <section class="view" id="view-settings">
+          <header><h1>Configurações</h1></header>
+          <div class="card form">
+            <label>Perfil
+              <select id="cfg-profile"></select>
+            </label>
+            <label>Microfone
+              <select id="cfg-device"></select>
+            </label>
+            <label>Modelo Whisper
+              <select id="cfg-model">
+                <option value="auto">Automático (recomendado)</option>
+                <option value="large-v3-turbo">large-v3-turbo (preciso e rápido)</option>
+                <option value="medium">medium</option>
+                <option value="small">small</option>
+                <option value="base">base (leve)</option>
+                <option value="tiny">tiny (mais leve)</option>
+              </select>
+            </label>
+            <label>Idioma
+              <select id="cfg-language">
+                <option value="pt">Português</option>
+                <option value="en">Inglês</option>
+                <option value="es">Espanhol</option>
+                <option value="auto">Detectar automaticamente</option>
+              </select>
+            </label>
+            <label>Atalho global
+              <input id="cfg-hotkey" type="text" placeholder="ctrl+alt+d" />
+            </label>
+            <label>Segundos de silêncio para parar
+              <input id="cfg-silence" type="number" step="0.1" min="0.3" max="10" />
+            </label>
+            <label class="check"><input id="cfg-vad" type="checkbox" /> Usar VAD neural (Silero)</label>
+            <label class="check"><input id="cfg-denoise" type="checkbox" /> Reduzir ruído antes de transcrever</label>
+            <label class="check"><input id="cfg-voice" type="checkbox" /> Comandos de voz (vírgula, nova linha…)</label>
+            <label class="check"><input id="cfg-cap" type="checkbox" /> Capitalizar frases</label>
+            <label class="check"><input id="cfg-paste" type="checkbox" /> Colar automaticamente</label>
+            <label class="check"><input id="cfg-sound" type="checkbox" /> Som de feedback</label>
+            <label class="check"><input id="cfg-rec" type="checkbox" /> Salvar gravações (privacidade: desligado)</label>
+            <label class="check"><input id="cfg-autostart" type="checkbox" /> Iniciar no login</label>
+            <div class="actions">
+              <button id="btn-save" class="btn-primary">Salvar</button>
+              <span id="save-status" class="muted"></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- DICIONÁRIO -->
+        <section class="view" id="view-dictionary">
+          <header><h1>Dicionário</h1><p class="muted">Corrija nomes e jargões automaticamente.</p></header>
+          <div class="card">
+            <div class="dict-add">
+              <input id="dict-from" placeholder="ouvido como…" />
+              <span>→</span>
+              <input id="dict-to" placeholder="corrigir para…" />
+              <button id="dict-add" class="btn-primary">Adicionar</button>
+            </div>
+            <table class="dict-table"><tbody id="dict-body"></tbody></table>
+          </div>
+          <div class="card">
+            <h3>Hotwords (termos para enviesar a transcrição)</h3>
+            <textarea id="cfg-hotwords" rows="2" placeholder="ex.: Kubernetes, faster-whisper, Maycon"></textarea>
+            <div class="actions"><button id="btn-save-hotwords" class="btn-primary">Salvar</button></div>
+          </div>
+        </section>
+
+        <!-- HISTÓRICO -->
+        <section class="view" id="view-history">
+          <header>
+            <h1>Histórico</h1>
+            <button id="btn-clear-history" class="btn-ghost">Limpar</button>
+          </header>
+          <div id="history-list"></div>
+        </section>
+
+        <!-- DIAGNÓSTICO -->
+        <section class="view" id="view-diagnostics">
+          <header><h1>Diagnóstico</h1><button id="btn-refresh-diag" class="btn-ghost">Atualizar</button></header>
+          <pre id="diag-output" class="result">—</pre>
+        </section>
+
+        <!-- MODELOS -->
+        <section class="view" id="view-models">
+          <header><h1>Modelos</h1><p class="muted">O modelo é baixado e armazenado localmente no primeiro uso.</p></header>
+          <div class="card"><p id="models-info" class="muted">—</p></div>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

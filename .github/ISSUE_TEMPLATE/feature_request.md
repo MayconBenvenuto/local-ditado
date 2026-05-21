@@ -1,19 +1,19 @@
 ---
 name: Feature request
-about: Sugira uma melhoria
+about: Suggest an improvement
 title: "[Feature]: "
 labels: enhancement
 assignees: ""
 ---
 
-## Problema
+## Problem
 
-Qual dor essa melhoria resolve?
+What pain does this improvement solve?
 
-## Proposta
+## Proposal
 
-Como você imagina a solução?
+How do you picture the solution?
 
-## Alternativas
+## Alternatives
 
-Que alternativas você já tentou?
+What alternatives have you already tried?

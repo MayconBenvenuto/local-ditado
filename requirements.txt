@@ -1,5 +1,28 @@
-faster-whisper==1.2.1
-Pillow==12.1.0
-PyAudio==0.2.14
-pystray==0.19.5
-vosk==0.3.45
+# Dependências do motor (Windows, Linux, macOS).
+# Recomendado: pip install -e engine[app,vad]
+# Este arquivo cobre o caminho rápido sem packaging.
+
+# Núcleo
+faster-whisper>=1.1.0
+sounddevice>=0.4.6
+numpy>=1.24
+pynput>=1.7.6
+pyperclip>=1.8.2
+
+# Endpointing neural (opcional, melhora muito a detecção de fim de fala)
+onnxruntime>=1.16
+silero-vad>=5.1
+
+# App de bandeja + sidecar do app desktop
+pystray>=0.19.5
+Pillow>=10.0
+fastapi>=0.110
+uvicorn>=0.29
+websockets>=12.0
+
+# Fallback offline opcional
+vosk>=0.3.45
+
+# Redução de ruído opcional
+# noisereduce>=3.0
+# scipy>=1.10

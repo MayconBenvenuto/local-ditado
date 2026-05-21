@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "local-ditado"
+version = "0.2.0"
+description = "Ditado offline (speech-to-text) multiplataforma com Whisper local, atalho global e privacidade total."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Local Ditado contributors" }]
+keywords = ["speech-to-text", "dictation", "whisper", "offline", "transcription", "ditado"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+
+dependencies = [
+  "faster-whisper>=1.1.0",
+  "sounddevice>=0.4.6",
+  "numpy>=1.24",
+  "pynput>=1.7.6",
+  "pyperclip>=1.8.2",
+]
+
+[project.optional-dependencies]
+# Endpointing por VAD neural (melhor que RMS). Opcional: cai para RMS se ausente.
+vad = ["onnxruntime>=1.16", "silero-vad>=5.1"]
+# Redução de ruído opcional no pré-processamento.
+denoise = ["noisereduce>=3.0", "scipy>=1.10"]
+# Fallback offline com Vosk.
+vosk = ["vosk>=0.3.45"]
+# App de bandeja e painel (sidecar do app Tauri).
+app = ["pystray>=0.19.5", "Pillow>=10.0", "fastapi>=0.110", "uvicorn>=0.29", "websockets>=12.0"]
+# GPU NVIDIA (CUDA 12). Instale com --extra-index-url https://pypi.ngc.nvidia.com
+gpu = [
+  "nvidia-cublas-cu12>=12.4",
+  "nvidia-cudnn-cu12>=9.0",
+  "nvidia-cuda-runtime-cu12>=12.4",
+  "nvidia-cuda-nvrtc-cu12>=12.4",
+]
+dev = ["pytest>=8.0", "ruff>=0.5", "mypy>=1.10"]
+
+[project.scripts]
+local-ditado = "localditado.cli:main"
+localditado = "localditado.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/local-ditado/local-ditado"
+Repository = "https://github.com/local-ditado/local-ditado"
+
+[tool.hatch.build.targets.wheel]
+packages = ["localditado"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W"]
+ignore = ["B008"]  # FastAPI usa Depends() em defaults
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_unused_ignores = false

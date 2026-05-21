@@ -1,14 +1,19 @@
-## O que mudou
+# Pull Request
 
+## What changed
 
-## Como foi testado
+<!-- Describe what this PR does -->
 
+## How it was tested
 
-## Riscos
+<!-- Describe how you verified the change -->
 
+## Risks
+
+<!-- Any breaking changes or side effects? -->
 
 ## Checklist
 
-- [ ] Não inclui modelos, gravações, logs ou transcrições locais.
-- [ ] Atualiza documentação se o comportamento mudou.
-- [ ] Inclui comparação de performance se mexe em velocidade.
+- [ ] Does not include models, recordings, logs, or local transcripts.
+- [ ] Updates documentation if behaviour changed.
+- [ ] Includes performance comparison if speed is affected.

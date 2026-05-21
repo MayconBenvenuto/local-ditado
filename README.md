@@ -1,174 +1,103 @@
-# Ditado Local
+# Local Ditado
 
-Ditado offline para Windows com atalho global, Whisper local, aceleração por GPU/CUDA e fallback com Vosk.
+**100% offline, private, and free voice dictation — for Windows, Linux, and macOS.**
 
-O objetivo é simples: clicar em qualquer caixa de texto, apertar um atalho, falar e receber o texto colado no aplicativo focado, sem depender de serviços externos de transcrição.
+Click any text field, press a global hotkey, speak, and the text is pasted into the
+focused application. No audio sent to the cloud, no subscription. Open source.
 
-## Estado atual
+> A free alternative to paid/freemium dictation tools: transcription runs on your
+> machine with **local Whisper** (via `faster-whisper`), with GPU acceleration when available.
 
-- Windows
-- Instalador guiado: `install.ps1`
-- Configuração local: `config.json`
-- Perfis prontos: `precisao`, `equilibrado`, `rapido`
-- Atalho global: `Ctrl+Alt+D`
-- Motor principal: `Whisper small` via `faster-whisper`
-- GPU: CUDA com `int8_float16`, quando disponível
-- Fallback: Vosk
-- Instalação automática no login via Agendador de Tarefas
-- App de bandeja para trocar perfil e controlar o serviço
+## Why use it
 
-## Como usar
+- **Total privacy** — audio never leaves your computer. No telemetry.
+- **Fast and accurate** — `large-v3-turbo` model by default (with automatic fallback),
+  `BatchedInferencePipeline`, and neural VAD (Silero).
+- **Cross-platform** — Windows, Linux, and macOS.
+- **Desktop app** — panel with microphone meter, profiles, dictionary, history, and diagnostics.
+- **Extensible** — voice commands, user dictionary, profiles, and per-domain prompts.
 
-1. Clique em uma caixa de texto.
-2. Pressione `Ctrl+Alt+D`.
-3. Fale.
-4. Aguarde a transcrição e colagem automática.
+## Installation (engine / CLI)
 
-Você também pode pressionar `Ctrl+Alt+D` novamente para finalizar manualmente.
-
-## Instalação rápida
-
-Execute:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\install.ps1
+```bash
+# Linux needs PortAudio: sudo apt install libportaudio2
+pip install -e engine[app,vad]
 ```
 
-O instalador:
+For NVIDIA GPU (CUDA 12), also install:
 
-- verifica Python
-- instala dependências
-- detecta GPU NVIDIA
-- lista microfones
-- cria `config.json`
-- registra o serviço no login do Windows
-
-## Instalação manual
-
-Instale dependências principais:
-
-```powershell
-python -m pip install -r requirements.txt
+```bash
+pip install -e engine[gpu] --extra-index-url https://pypi.ngc.nvidia.com
 ```
 
-Para usar GPU/CUDA no Windows:
+## Usage (CLI)
 
-```powershell
-python -m pip install --extra-index-url https://pypi.ngc.nvidia.com -r requirements-gpu-cu12.txt
+```bash
+local-ditado service     # resident service with global hotkey (main mode)
+local-ditado once        # single dictation and exit
+local-ditado devices     # list microphones
+local-ditado test        # test microphone level
+local-ditado doctor      # environment diagnostics (--json for structured output)
+local-ditado tray        # system tray icon
 ```
 
-Opcionalmente, baixe o modelo Vosk para fallback offline:
+Default: press **Ctrl+Alt+D**, speak, and the text is transcribed and pasted. Press again
+(or go silent) to stop.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\baixar-modelo-vosk.ps1
-```
+## Desktop app (Tauri)
 
-Instale ou reinicie o serviço no login:
+Full graphical interface in `app/`. See [app/README.md](app/README.md) to run and package.
+Panel includes: **live microphone meter**, microphone/model/hotkey/language selection,
+**dictionary** of corrections, **history**, **diagnostics**, and **model download**.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\instalar-autostart.ps1
-```
+## Profiles
 
-Abra o app de bandeja:
+In `profiles/`:
 
-```powershell
-.\iniciar-tray.bat
-```
+- `precisao` — `large-v3-turbo`, `beam_size 5`, Silero VAD, noise reduction.
+- `equilibrado` — automatic model by hardware, `beam_size 5`.
+- `rapido` — `base`, `beam_size 1`, lowest latency.
 
-Instale o app de bandeja no login:
+Switch via the app, the tray, or with `local-ditado service --profile rapido`.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\instalar-tray-autostart.ps1
-```
+## Accuracy and speed
 
-Remova do início do Windows:
+See [docs/OPTIMIZATION.md](docs/OPTIMIZATION.md). Summary of what the project already does:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\desinstalar-autostart.ps1
-```
+- model resolved automatically by VRAM/CPU (turbo → small → base);
+- batch transcription and in-memory audio (no WAV on disk);
+- neural endpointing (Silero) instead of energy threshold;
+- `hotwords` + user dictionary for names and jargon;
+- post-processing: voice punctuation, capitalisation, space normalisation.
 
-## Testes manuais
+## Privacy
 
-Listar microfones:
+Everything is local. Audio recordings are **off by default**; when enabled, there is
+configurable retention. No network, no telemetry. See [docs/PRIVACY.md](docs/PRIVACY.md).
 
-```powershell
-python ditar.py --list-devices
-```
+## Architecture
 
-Testar volume:
+`engine/` (Python package `localditado`) is the brain; `app/` is the Tauri desktop shell
+that spawns the engine as a sidecar. Details in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-```powershell
-python ditar.py --device-name "External Mic" --test-seconds 5
-```
+## Documentation
 
-Ditado manual:
+Full index at [docs/README.md](docs/README.md):
 
-```powershell
-python ditar.py --device-name "External Mic" --clipboard
-```
+- [Installation](docs/INSTALL.md) · [Usage](docs/USAGE.md) · [Configuration](docs/CONFIGURATION.md)
+- [Voice Commands](docs/VOICE_COMMANDS.md) · [Optimization](docs/OPTIMIZATION.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Architecture](docs/ARCHITECTURE.md) · [Sidecar API](docs/API.md) · [Privacy](docs/PRIVACY.md)
 
-Diagnóstico completo:
+For AI agents: [AGENTS.md](AGENTS.md) (and [CLAUDE.md](CLAUDE.md)).
 
-```powershell
-python diagnostico.py
-```
+## Contributing
 
-Diagnóstico em JSON:
+Issues and PRs are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) and [ROADMAP.md](ROADMAP.md).
 
-```powershell
-python diagnostico.py --json
-```
+## Credits
 
-## Perfis
+`faster-whisper` / CTranslate2, Silero VAD, Vosk, sounddevice, pynput, Tauri.
 
-Os perfis ficam em `profiles/`:
+## License
 
-- `precisao`: Whisper small, GPU, `beam_size 5`, silêncio mais conservador.
-- `equilibrado`: Whisper small, GPU, silêncio menor.
-- `rapido`: Whisper base, GPU, `beam_size 1`, menor latência.
-
-Para trocar manualmente, edite `active_profile` em `config.json` e reinicie o serviço. Pelo tray, use o menu `Perfil`.
-
-## Arquivos importantes
-
-- `dictado_hotkey.py`: serviço residente com atalho global.
-- `ditar.py`: utilitário manual para teste e ditado no terminal.
-- `diagnostico.py`: relatório local de ambiente, GPU, pacotes e microfones.
-- `install.ps1`: instalador guiado do MVP.
-- `baixar-modelo-vosk.ps1`: baixa o modelo Vosk opcional de português.
-- `instalar-autostart.ps1`: registra o serviço no login do Windows.
-- `instalar-tray-autostart.ps1`: registra o app de bandeja no login do Windows.
-- `desinstalar-autostart.ps1`: remove o serviço.
-- `tray_app.py`: app de bandeja do Windows.
-- `profiles/`: perfis de precisão e velocidade.
-- `prompts/pt-br-default.txt`: prompt de contexto para melhorar transcrição em português.
-- `docs/OPTIMIZATION.md`: guia de precisão e velocidade.
-- `docs/COMMUNITY.md`: plano de comunidade.
-
-## Dados locais
-
-Estes arquivos não devem ser publicados no GitHub:
-
-- `models/`
-- `recordings/`
-- `ditado.txt`
-- `*.log`
-- `config.json`
-
-Eles estão no `.gitignore`.
-
-## Roadmap
-
-Veja [ROADMAP.md](ROADMAP.md).
-
-## Créditos
-
-Este projeto usa:
-
-- `faster-whisper` para transcrição com Whisper local.
-- `Vosk` como alternativa/fallback offline.
-- Bibliotecas NVIDIA CUDA/cuDNN/cuBLAS para aceleração por GPU no Windows.
-
-## Licença
-
-MIT. Veja [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

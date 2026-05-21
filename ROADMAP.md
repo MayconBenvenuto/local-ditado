@@ -1,25 +1,27 @@
 # Roadmap
 
-## MVP implementado
+## Delivered (v0.2)
 
-- Instalador guiado para Windows.
-- Configuração local em `config.json`.
-- Perfis `precisao`, `equilibrado` e `rapido`.
-- Diagnóstico de ambiente.
-- App de bandeja para controlar serviço e trocar perfil.
-- Execução com GPU/CUDA quando disponível.
+- **Cross-platform**: Windows, Linux, and macOS (`platform/` abstraction layer).
+- **Rewritten engine** as a Python package `localditado` with tests and CI.
+- **Accuracy/speed**: automatic `large-v3-turbo` + hardware-based fallback,
+  `BatchedInferencePipeline`, in-memory audio, Silero VAD, `hotwords` + dictionary,
+  post-processing (voice punctuation commands, capitalisation).
+- **Tauri desktop app**: panel with microphone meter, settings, dictionary,
+  history, diagnostics, and model download.
+- **Privacy**: recordings off by default + retention policy; no telemetry.
 
-## Próximas melhorias
+## Next
 
-- Melhorar o app de bandeja com notificações e seleção visual de microfone.
-- Tela simples para escolher microfone e atalho.
-- Benchmarks padronizados por modelo, GPU, CPU e duração do áudio.
-- Dicionário personalizado para termos frequentes.
+- **Real-time streaming** (partial results while speaking) — WebSocket API is already prepared.
+- Packaging: PyPI + signed installers (MSI/.deb/.AppImage/.dmg) via Releases.
+- Permission onboarding (Accessibility on macOS; Wayland notice on Linux).
+- Richer voice editing (delete last sentence, select text, etc.).
 
-## Ideias para a comunidade
+## Community ideas
 
-- Banco de resultados por hardware.
-- Guias por microfone/headset.
-- Pacote de prompts por área: jurídico, atendimento, programação, marketing.
-- Suporte a mais idiomas.
-- Integração opcional com Whisper.cpp para máquinas sem Python.
+- Hardware benchmark database (from `local-ditado doctor --json` outputs).
+- Domain-specific prompt/dictionary packs: legal, medical, programming, customer support.
+- More languages and ready-made profiles.
+- Whisper.cpp integration for machines without Python.
+- Microphone/headset setup guides.

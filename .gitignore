@@ -22,3 +22,16 @@ Thumbs.db
 build/
 dist/
 *.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# App desktop (Tauri / Node)
+app/node_modules/
+app/build/
+app/src-tauri/target/
+app/src-tauri/gen/
+app/src-tauri/binaries/
+# Ícones gerados por `tauri icon` (mantém apenas o icon.png fonte)
+app/src-tauri/icons/*
+!app/src-tauri/icons/icon.png

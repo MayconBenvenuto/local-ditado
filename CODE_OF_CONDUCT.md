@@ -1,12 +1,12 @@
-# Código de Conduta
+# Code of Conduct
 
-Este projeto deve ser um espaço prático, respeitoso e útil.
+This project should be a practical, respectful, and useful space.
 
-Esperamos que participantes:
+We expect participants to:
 
-- Tratem outras pessoas com respeito.
-- Foquem em problemas reproduzíveis e soluções concretas.
-- Evitem ataques pessoais, assédio, discriminação ou linguagem hostil.
-- Respeitem privacidade: não publique gravações, logs ou transcrições de terceiros sem consentimento.
+- Treat other people with respect.
+- Focus on reproducible problems and concrete solutions.
+- Avoid personal attacks, harassment, discrimination, or hostile language.
+- Respect privacy: do not publish recordings, logs, or transcripts from others without consent.
 
-Comportamentos abusivos podem resultar em remoção de comentários, issues ou bloqueio de participação.
+Abusive behaviour may result in comments or issues being removed, or participants being blocked.

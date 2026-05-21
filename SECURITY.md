@@ -1,20 +1,22 @@
-# Segurança
+# Security
 
-O Ditado Local grava áudio do microfone e cola texto no aplicativo focado. Isso exige cuidado.
+Local Ditado records audio from the microphone and pastes text into the focused application.
+This requires care.
 
-## Dados sensíveis
+## Sensitive data
 
-- Não publique arquivos de `recordings/`.
-- Não publique `ditado.txt`.
-- Não publique logs se eles contiverem texto sensível.
+- Do not publish files from `recordings/`.
+- Do not publish `ditado.txt` or any local transcript file.
+- Do not publish logs if they contain sensitive text.
 
-## Reportando vulnerabilidades
+## Reporting vulnerabilities
 
-Abra uma issue com detalhes suficientes para reproduzir, mas sem expor dados privados. Para problemas sensíveis, descreva o impacto e combine um canal privado com os mantenedores.
+Open an issue with enough detail to reproduce the problem, but without exposing private data.
+For sensitive issues, describe the impact and arrange a private channel with the maintainers.
 
-## Modelo de segurança atual
+## Current security model
 
-- O reconhecimento roda localmente.
-- O serviço usa atalho global do Windows.
-- O texto é enviado para a área de transferência e colado na janela focada.
-- Modelos baixados de terceiros devem ser tratados como dependências externas.
+- Speech recognition runs entirely locally.
+- The service listens on `127.0.0.1` only (loopback — not reachable from the network).
+- Text is written to the clipboard and pasted into the focused window.
+- Models downloaded from third parties should be treated as external dependencies.

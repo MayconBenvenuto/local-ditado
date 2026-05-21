@@ -1,36 +1,38 @@
-# Comunidade
+# Community
 
-## Posicionamento
+## Positioning
 
-Ditado Local é um projeto open source para ditado offline no Windows usando modelos locais de fala, com foco em privacidade, produtividade e acessibilidade.
+Local Ditado is an open source project for offline dictation (speech-to-text) on Windows,
+Linux, and macOS using local speech models, with a focus on privacy, productivity, and
+accessibility.
 
-## Público inicial
+## Target audience
 
-- Pessoas que escrevem muito no Windows.
-- Profissionais que querem ditado sem enviar áudio para serviços externos.
-- Pessoas com limitação motora ou dor ao digitar.
-- Desenvolvedores interessados em Whisper, Vosk, CUDA e automação local.
+- People who write a lot and want hands-free input.
+- Professionals who need dictation without sending audio to external services.
+- People with motor limitations or repetitive-strain injuries from typing.
+- Developers interested in Whisper, Vosk, CUDA, and local automation.
 
-## Primeiros canais
+## Initial channels
 
-- GitHub Discussions para dúvidas, ideias e setups.
-- GitHub Issues para bugs reproduzíveis.
-- Wiki ou docs para tutoriais de instalação por hardware.
-- Tabela de hardware testado a partir de saídas do `python diagnostico.py --json`.
+- GitHub Discussions for questions, ideas, and hardware setups.
+- GitHub Issues for reproducible bugs.
+- Wiki or docs for per-hardware installation tutorials.
+- Tested hardware table built from `local-ditado doctor --json` outputs.
 
-## Conteúdos para lançar
+## Launch content
 
-- Post inicial: "Transformei um script de ditado local em um projeto open source".
-- Demo curta: clicar em campo, apertar atalho, falar e colar.
-- Guia: "Como rodar Whisper local com GPU no Windows".
-- Chamada para testes: pedir resultados por GPU, CPU, microfone e idioma.
-- Post técnico: "Como corrigimos cuBLAS/cuDNN no Windows usando pacotes NVIDIA via pip".
+- Intro post: "I turned a local dictation script into an open source project".
+- Short demo: click a field, press the hotkey, speak, and paste.
+- Guide: "How to run local Whisper with GPU".
+- Test call: ask for results by GPU, CPU, microphone, and language.
+- Technical post: "How we fixed cuBLAS/cuDNN on Windows using NVIDIA pip packages".
 
-## Categorias de discussão sugeridas
+## Suggested discussion categories
 
-- Instalação no Windows
-- Precisão e prompts
-- Performance e GPU
-- Microfones e áudio
-- Ideias de recursos
-- Acessibilidade
+- Installation
+- Accuracy and prompts
+- Performance and GPU
+- Microphones and audio
+- Feature ideas
+- Accessibility

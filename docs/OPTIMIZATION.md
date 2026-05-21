@@ -1,50 +1,47 @@
-# Otimização de precisão e velocidade
+# Accuracy and speed optimisation
 
-## O que mais impacta precisão
+Local Ditado already applies, by default, the main techniques that separate a
+"hobby" dictation tool from a competitive one. This guide explains what is enabled
+and how to tune it.
 
-1. Microfone correto e próximo da boca.
-2. Baixo ruído ambiente.
-3. Modelo Whisper maior.
-4. Prompt de contexto com palavras comuns do usuário.
-5. `beam_size` maior, geralmente `5`.
+## Already implemented
 
-## O que mais impacta velocidade
+| Technique | Where | Effect |
+| --- | --- | --- |
+| Automatic `large-v3-turbo` model | `hardware.py` | "large" accuracy near "base" speed |
+| Hardware fallback (turbo→small→base) | `hardware.choose_model` | good performance even on small GPU/CPU |
+| `BatchedInferencePipeline` | `transcribe.py` | much higher transcription throughput |
+| In-memory audio (no WAV on disk) | `audio.py` / `service.py` | removes I/O latency |
+| Neural endpointing (Silero VAD) | `vad.py` | detects end of speech better than RMS; trims silence |
+| `hotwords` + dictionary | `transcribe.py` / `postprocess.py` | gets names, acronyms, and jargon right |
+| Pre-processing (normalisation, optional denoise) | `transcribe.preprocess_audio` | robustness in noise |
+| Post-processing (punctuation, capitalisation) | `postprocess.py` | ready-to-use text |
 
-1. GPU/CUDA funcionando.
-2. Modelo menor.
-3. Áudio mais curto.
-4. Menor tempo de silêncio automático.
-5. `beam_size` menor.
+## What matters most for ACCURACY
 
-## Perfil recomendado atual
+1. Good microphone close to your mouth; low background noise.
+2. Larger model (`large-v3-turbo` or `medium`).
+3. `hotwords`/dictionary with your frequent terms.
+4. Context prompt (`prompts/pt-br-default.txt`).
+5. `beam_size` 5.
 
-```powershell
-pythonw dictado_hotkey.py --config .\config.json
-```
+## What matters most for SPEED
 
-Use `active_profile` em `config.json` para alternar entre `precisao`, `equilibrado` e `rapido`.
+1. GPU/CUDA active (`local-ditado doctor` confirms).
+2. Smaller model + batching.
+3. Lower `silence_seconds` (stops sooner).
+4. `beam_size` 1.
 
-## Experimentos seguros
+## Quick tuning
 
-Para reduzir latência sem derrubar muito a precisão:
+- More accurate: `precisao` profile (turbo, beam 5, denoise).
+- Balanced: `equilibrado` profile (automatic model).
+- Faster: `rapido` profile (base, beam 1, silence 0.8 s).
 
-- Testar `--silence-seconds 1.5`
-- Manter `--whisper-model small`
-- Manter `--beam-size 5`
-- Manter GPU com `--whisper-device cuda`
+All of this is editable via the app (Settings) or the JSON files in `profiles/`.
 
-No MVP, isso corresponde a editar `profiles/equilibrado.json` ou usar o perfil `equilibrado`.
+## Next step (future phase): real-time streaming
 
-Para máxima precisão:
-
-- Testar `--whisper-model medium`, se a GPU tiver memória suficiente.
-- Usar prompt de contexto mais completo.
-- Evitar `beam-size 1`.
-
-Para máxima velocidade:
-
-- Testar `--whisper-model base`
-- Testar `--beam-size 1`
-- Testar `--silence-seconds 0.8`
-
-Essa combinação pode reduzir qualidade, então deve ser um perfil separado.
+The sidecar WebSocket API is already ready to stream **partial results** while you speak.
+The implementation will transcribe in sliding windows and update the text incrementally,
+matching the "real-time" feel of paid competitors.
