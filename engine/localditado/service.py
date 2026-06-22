@@ -111,6 +111,11 @@ class DictationService:
             result = self.engine.transcribe(samples, initial_prompt=self.initial_prompt)
             text = postprocess.process_with_settings(result.text, self.settings)
 
+            if self.settings.get("llm_format") and text:
+                from . import llm_postprocess
+
+                text = llm_postprocess.format_text(text, self.settings)
+
             if self.settings.get("save_transcript", True) and text:
                 history.append_entry(
                     text,

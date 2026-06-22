@@ -24,7 +24,8 @@ DEFAULT_SETTINGS  <  profiles/<profile>.json  <  config.json (user)  <  CLI flag
 
 | Key | Default | Description |
 | --- | --- | --- |
-| `engine` | `"whisper"` | `whisper` (primary) or `vosk` (offline fallback). |
+| `engine` | `"whisper"` | `whisper` (primary), `parakeet` (NVIDIA NeMo, `parakeet` extra) or `vosk` (offline fallback). A missing backend degrades gracefully (→ whisper → vosk). |
+| `parakeet_model` | `"nvidia/parakeet-tdt-0.6b-v3"` | Model used when `engine` = `parakeet`. Multilingual, very fast on CUDA. |
 | `language` | `"pt"` | Language code (`pt`, `en`, `es`…) or `auto` to detect. |
 | `whisper_model` | `"auto"` | `auto` chooses by hardware; or `large-v3-turbo`, `medium`, `small`, `base`, `tiny`. |
 | `whisper_device` | `"auto"` | `auto`, `cpu`, or `cuda`. |
@@ -33,6 +34,7 @@ DEFAULT_SETTINGS  <  profiles/<profile>.json  <  config.json (user)  <  CLI flag
 | `cpu_threads` | `0` | `0` = automatic (machine cores). |
 | `batched` | `true` | Use `BatchedInferencePipeline` (faster). |
 | `batch_size` | `8` | Batch size when `batched`. |
+| `warmup` | `true` | Run a silent inference at load so the **first** dictation is fast (avoids the cuDNN/CT2 autotune spike). |
 
 > The `auto` resolution logic lives in `localditado/hardware.py`: ample GPU →
 > `large-v3-turbo`; small GPU → `small`/`base`; CPU → `small`/`base` by core count.
@@ -46,6 +48,7 @@ DEFAULT_SETTINGS  <  profiles/<profile>.json  <  config.json (user)  <  CLI flag
 | `speech_rms_threshold` | `450` | Energy threshold for `rms` mode. |
 | `max_seconds` | `120` | Safety cap: maximum recording duration. |
 | `denoise` | `false` | Noise reduction before transcribing (requires `denoise` extra). |
+| `denoise_method` | `"spectral"` | `spectral` (noisereduce) or `deepfilternet` (neural, stronger; `deepfilter` extra). |
 
 ### Post-processing
 
@@ -56,6 +59,13 @@ DEFAULT_SETTINGS  <  profiles/<profile>.json  <  config.json (user)  <  CLI flag
 | `voice_commands` | `true` | Interpret "comma", "new line", etc. See [VOICE_COMMANDS.md](VOICE_COMMANDS.md). |
 | `capitalize` | `true` | Capitalise the start of sentences. |
 | `dictionary` | `{}` | Literal substitutions `{ "heard": "corrected" }` (case-insensitive, whole word). |
+| `llm_format` | `false` | Clean up the transcript with a **local** LLM (offline; requires `llm` extra). |
+| `llm_model_path` | `""` | Path to a local GGUF model (llama-cpp-python) used when `llm_format` is on. |
+| `llm_gpu_layers` | `-1` | Layers to offload to GPU (`-1` = all when possible). |
+| `llm_format_instruction` | `""` | Override the default cleanup instruction sent to the LLM. |
+
+> `llm_format` runs entirely on-device — nothing is sent over the network, in
+> keeping with the privacy principle. It only activates when a model path is set.
 
 ### Output and privacy
 

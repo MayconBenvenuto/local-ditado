@@ -25,7 +25,8 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "device_name": None,       # substring of the microphone name
     "sample_rate": 16000,
     # Engine
-    "engine": "whisper",       # "whisper" or "vosk"
+    "engine": "whisper",       # "whisper", "parakeet" (NVIDIA NeMo) or "vosk"
+    "parakeet_model": "nvidia/parakeet-tdt-0.6b-v3",  # used when engine == "parakeet"
     "language": "pt",          # language code; "auto" for automatic detection
     "whisper_model": "auto",   # "auto" detects hardware; or small/medium/large-v3-turbo/...
     "whisper_device": "auto",  # "auto" | "cpu" | "cuda"
@@ -34,18 +35,25 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "cpu_threads": 0,          # 0 = automatic (machine cores)
     "batched": True,           # BatchedInferencePipeline (faster)
     "batch_size": 8,
+    "warmup": True,            # silent inference at load → fast first dictation
     # Capture / endpointing
     "vad": "silero",           # "silero" (neural) or "rms" (fallback)
     "silence_seconds": 1.5,    # silence to auto-stop
     "speech_rms_threshold": 450,
     "max_seconds": 120,        # recording safety cap
     "denoise": False,          # noise reduction before transcribing
+    "denoise_method": "spectral",  # "spectral" (noisereduce) or "deepfilternet" (neural)
     # Post-processing
     "initial_prompt_file": str(paths.default_prompt_path()),
     "hotwords": "",            # terms to bias transcription (faster-whisper)
     "voice_commands": True,    # "new line", "comma", "period", ...
     "capitalize": True,
     "dictionary": {},          # literal substitutions {wrong: right}
+    # Optional local-LLM "smart formatting" (offline; off by default)
+    "llm_format": False,       # enable LLM cleanup of the transcript
+    "llm_model_path": "",      # path to a local GGUF model (llama-cpp-python)
+    "llm_gpu_layers": -1,      # -1 = offload all layers to GPU when possible
+    "llm_format_instruction": "",  # override the default cleanup instruction
     # Output
     "auto_paste": True,        # paste into the focused app
     "save_transcript": True,   # append to history

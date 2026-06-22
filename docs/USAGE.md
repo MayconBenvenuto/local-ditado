@@ -20,6 +20,7 @@ All commands: `local-ditado <subcommand>` (or `python -m localditado <subcommand
 | `tray` | System tray icon. |
 | `devices` | Lists microphones. |
 | `test` | Shows the microphone level for a few seconds. |
+| `bench` | Measures transcription speed (RTFx) — no microphone needed. |
 | `doctor` | Environment diagnostics (use `--json`). |
 
 ### Common options (`service`, `once`, `test`)
@@ -33,7 +34,7 @@ All commands: `local-ditado <subcommand>` (or `python -m localditado <subcommand
 | `--language` | `--language en` | Language (or `auto`). |
 | `--engine` | `--engine vosk` | Transcription engine. |
 
-Others: `serve --port 8000`, `test --seconds 8`, `doctor --json`.
+Others: `serve --port 8000`, `test --seconds 8`, `bench --seconds 10 --runs 3`, `doctor --json`.
 
 ### Examples
 

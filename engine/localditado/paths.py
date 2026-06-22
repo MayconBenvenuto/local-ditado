@@ -18,7 +18,19 @@ APP_SLUG = "local-ditado"
 
 # Repository/install root (where versioned profiles/ and prompts/ live).
 PACKAGE_ROOT = Path(__file__).resolve().parent
-REPO_ROOT = PACKAGE_ROOT.parent.parent
+
+
+def _versioned_root() -> Path:
+    """Root containing bundled profiles and prompts."""
+    frozen_root = getattr(sys, "_MEIPASS", None)
+    if frozen_root:
+        root = Path(frozen_root)
+        if (root / "profiles").exists() or (root / "prompts").exists():
+            return root
+    return PACKAGE_ROOT.parent.parent
+
+
+REPO_ROOT = _versioned_root()
 
 
 def config_dir() -> Path:

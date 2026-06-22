@@ -16,6 +16,14 @@ import logging
 import secrets
 import threading
 
+# WebSocket must be importable at module scope: with ``from __future__ import
+# annotations`` the ``ws: WebSocket`` hint becomes the string "WebSocket", which
+# FastAPI resolves against this module's globals. If it is only imported locally
+# inside ``create_app``, FastAPI cannot resolve it, treats ``ws`` as a required
+# query parameter, and rejects every /ws handshake with HTTP 403.
+# (This module is only imported when serving, so fastapi stays effectively lazy.)
+from fastapi import WebSocket, WebSocketDisconnect
+
 from . import config, diagnostics, history, paths
 from .platform import autostart
 from .service import DictationService
@@ -86,7 +94,7 @@ class AppState:
 
 
 def create_app(state: AppState):
-    from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+    from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
 
     app = FastAPI(title="Local Ditado", version="0.2.0")

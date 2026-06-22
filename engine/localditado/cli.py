@@ -7,6 +7,7 @@ Subcommands:
   tray      System tray icon (requires the [app] extra).
   devices   List microphones.
   test      Test the microphone level for a few seconds.
+  bench     Measure transcription speed (RTFx) without a microphone.
   doctor    Environment diagnostics (use --json for structured output).
 """
 
@@ -146,6 +147,53 @@ def cmd_test(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_bench(args: argparse.Namespace) -> int:
+    """Measure raw transcription throughput (RTFx) on this machine.
+
+    Uses synthetic audio with the VAD filter **off** so the model actually
+    processes the whole buffer — otherwise Whisper's VAD would skip the
+    speechless test signal and report a meaningless speed.
+    """
+    import time
+
+    import numpy as np
+
+    from . import transcribe
+
+    settings = _load(args)
+    settings["warmup"] = False  # warm up explicitly below, excluded from timing
+    sr = int(settings.get("sample_rate", 16000))
+    seconds = float(args.seconds)
+
+    # Synthetic broadband signal (no microphone needed). Content does not matter
+    # for a throughput measurement; what matters is processing the full buffer.
+    rng = np.random.default_rng(0)
+    audio = (0.05 * rng.standard_normal(int(seconds * sr))).astype(np.float32)
+
+    print(f"Loading engine (profile: {settings.get('active_profile')})...")
+    engine = transcribe.Engine(settings)
+    backend = engine.backend
+    language = settings.get("language", "pt")
+    print(f"Engine: {engine.kind}/{engine.model_name} — warming up...")
+    backend.transcribe(audio[:sr], language=language, vad_filter=False)
+
+    elapsed: list[float] = []
+    for i in range(args.runs):
+        started = time.perf_counter()
+        backend.transcribe(audio, language=language, vad_filter=False)
+        run = time.perf_counter() - started
+        elapsed.append(run)
+        print(f"  run {i + 1}/{args.runs}: {run:.2f}s")
+
+    best = min(elapsed)
+    avg = sum(elapsed) / len(elapsed)
+    print(
+        f"\n{seconds:g}s audio · best {best:.2f}s ({seconds / best:.1f}x realtime) · "
+        f"avg {avg:.2f}s ({seconds / avg:.1f}x realtime)"
+    )
+    return 0
+
+
 def cmd_doctor(args: argparse.Namespace) -> int:
     from . import diagnostics
 
@@ -192,6 +240,12 @@ def build_parser() -> argparse.ArgumentParser:
     add_common(p_test)
     p_test.add_argument("--seconds", type=float, default=5.0)
     p_test.set_defaults(func=cmd_test)
+
+    p_bench = sub.add_parser("bench", help="measure transcription speed (RTFx)")
+    add_common(p_bench)
+    p_bench.add_argument("--seconds", type=float, default=10.0, help="length of test audio")
+    p_bench.add_argument("--runs", type=int, default=3, help="number of timed runs")
+    p_bench.set_defaults(func=cmd_bench)
 
     p_doctor = sub.add_parser("doctor", help="environment diagnostics")
     p_doctor.add_argument("--json", action="store_true")

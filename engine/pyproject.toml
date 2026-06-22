@@ -34,8 +34,14 @@ dependencies = [
 vad = ["onnxruntime>=1.16", "silero-vad>=5.1"]
 # Redução de ruído opcional no pré-processamento.
 denoise = ["noisereduce>=3.0", "scipy>=1.10"]
+# Supressão de ruído neural real-time (mais forte que noisereduce).
+deepfilter = ["deepfilternet>=0.5", "torchaudio>=2.0"]
+# Pós-processamento opcional com LLM local (smart formatting offline).
+llm = ["llama-cpp-python>=0.2.90"]
 # Fallback offline com Vosk.
 vosk = ["vosk>=0.3.45"]
+# Backend NVIDIA NeMo Parakeet TDT (multilíngue, muito rápido em CUDA). Pesado.
+parakeet = ["nemo_toolkit[asr]>=2.0"]
 # App de bandeja e painel (sidecar do app Tauri).
 app = ["pystray>=0.19.5", "Pillow>=10.0", "fastapi>=0.110", "uvicorn>=0.29", "websockets>=12.0"]
 # GPU NVIDIA (CUDA 12). Instale com --extra-index-url https://pypi.ngc.nvidia.com

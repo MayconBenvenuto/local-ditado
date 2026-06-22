@@ -10,7 +10,13 @@
     <div id="app">
       <aside class="sidebar">
         <div class="brand">
-          <div class="logo">🎙️</div>
+          <div class="logo" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="2" width="6" height="11" rx="3" />
+              <path d="M5 10a7 7 0 0 0 14 0" />
+              <line x1="12" y1="17" x2="12" y2="21" />
+            </svg>
+          </div>
           <div>
             <div class="brand-name">Local Ditado</div>
             <div class="brand-sub">offline · privado</div>
@@ -35,16 +41,16 @@
         <section class="view active" id="view-dashboard">
           <header><h1>Painel</h1><p class="muted">Dite em qualquer aplicativo com um atalho global.</p></header>
 
-          <div class="card mic-card">
+          <div class="hero mic-card">
             <div class="meter"><div id="meter-fill" class="meter-fill"></div></div>
             <button id="btn-dictate" class="btn-record">Ditar agora</button>
             <p id="dictate-status" class="muted">pronto</p>
           </div>
 
           <div class="grid">
-            <div class="card stat"><span class="muted">Motor</span><strong id="stat-engine">—</strong></div>
-            <div class="card stat"><span class="muted">Perfil</span><strong id="stat-profile">—</strong></div>
-            <div class="card stat"><span class="muted">Atalho</span><strong id="stat-hotkey">—</strong></div>
+            <div class="card stat"><span class="eyebrow">Motor</span><strong id="stat-engine">—</strong></div>
+            <div class="card stat"><span class="eyebrow">Perfil</span><strong id="stat-profile">—</strong></div>
+            <div class="card stat"><span class="eyebrow">Atalho</span><strong id="stat-hotkey">—</strong></div>
           </div>
 
           <div class="card">
@@ -58,10 +64,16 @@
           <header><h1>Configurações</h1></header>
           <div class="card form">
             <label>Perfil
-              <select id="cfg-profile"></select>
+              <select id="cfg-profile">
+                <option value="equilibrado">equilibrado</option>
+                <option value="precisao">precisao</option>
+                <option value="rapido">rapido</option>
+              </select>
             </label>
             <label>Microfone
-              <select id="cfg-device"></select>
+              <select id="cfg-device">
+                <option value="">Padrão do sistema</option>
+              </select>
             </label>
             <label>Modelo Whisper
               <select id="cfg-model">

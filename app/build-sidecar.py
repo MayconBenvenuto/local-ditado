@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
-"""Bundle the Python engine as a single binary (Tauri sidecar).
+"""Bundle the Python engine as a Tauri sidecar (PyInstaller **onedir**).
 
 Usage:
     pip install pyinstaller
     python app/build-sidecar.py
 
-Generates ``app/src-tauri/binaries/local-ditado-engine-<target-triple>(.exe)``, which is
-the name Tauri expects for ``externalBin``.
+Generates the folder ``app/src-tauri/binaries/local-ditado-engine/`` containing
+``local-ditado-engine(.exe)`` plus ``_internal/``. The Rust shell spawns that
+executable directly (see ``main.rs``); the folder is shipped via Tauri
+``resources``.
+
+Why onedir (not ``--onefile``):
+- The single-file build re-compresses ~1.5 GB every time → slow to build and
+  slow to start (it self-extracts on each launch). Onedir skips both: faster
+  build and near-instant startup.
 
 Notes:
-- Bundles CPU-only by default. For GPU/CUDA, install the [gpu] extras first and
-  adjust the --collect-all flags as needed (the bundle will be large).
+- Bundles the CUDA DLLs found in site-packages when present (see
+  ``nvidia_binary_args``); otherwise it is CPU-only.
 - Models are NOT embedded: they are downloaded on first use to the data directory.
 """
 
@@ -19,6 +26,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 import sys
+import site
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -27,29 +35,55 @@ OUT_DIR = ROOT / "src-tauri" / "binaries"
 NAME = "local-ditado-engine"
 
 
-def target_triple() -> str:
-    try:
-        out = subprocess.run(["rustc", "-vV"], capture_output=True, text=True, check=True).stdout
-        for line in out.splitlines():
-            if line.startswith("host:"):
-                return line.split("host:")[1].strip()
-    except Exception:
-        pass
-    # Reasonable fallback per OS.
-    return {
-        "win32": "x86_64-pc-windows-msvc",
-        "darwin": "aarch64-apple-darwin",
-    }.get(sys.platform, "x86_64-unknown-linux-gnu")
+def data_separator() -> str:
+    return ";" if sys.platform == "win32" else ":"
+
+
+def nvidia_binary_args() -> list[str]:
+    """Bundle CUDA DLLs installed by NVIDIA's pip packages."""
+    if sys.platform != "win32":
+        return []
+
+    args: list[str] = []
+    roots = [Path(p) / "nvidia" for p in (*site.getsitepackages(), site.getusersitepackages())]
+    subdirs = ("cublas/bin", "cudnn/bin", "cuda_runtime/bin", "cuda_nvrtc/bin")
+    for root in roots:
+        for subdir in subdirs:
+            source = root / subdir
+            if not source.exists():
+                continue
+            target = Path("nvidia") / subdir
+            for dll in sorted(source.glob("*.dll")):
+                args.extend(["--add-binary", f"{dll}{data_separator()}{target}"])
+    return args
+
+
+def _copy_bundle(bundle_dir: Path, dest_parent: Path) -> None:
+    """Mirror the onedir bundle into ``dest_parent/<NAME>`` for the directly-run
+    (non-installed) app and for ``tauri dev``, which resolve the sidecar next to
+    the executable rather than from the installer's resource directory.
+
+    ``dest_parent`` is ``<target>/<profile>/binaries``. We only mirror when that
+    build profile has been compiled at least once (its dir exists), creating the
+    ``binaries`` folder if needed.
+    """
+    if not dest_parent.parent.exists():
+        return
+    dest = dest_parent / NAME
+    if dest.exists():
+        shutil.rmtree(dest, ignore_errors=True)
+    dest_parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(bundle_dir, dest)
+    print(f"Mirrored sidecar to: {dest}")
 
 
 def main() -> int:
-    triple = target_triple()
-    ext = ".exe" if sys.platform == "win32" else ""
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     cmd = [
         sys.executable, "-m", "PyInstaller",
-        "--onefile",
+        "--onedir",
+        "--noconfirm",
         "--name", NAME,
         "--distpath", str(OUT_DIR),
         "--workpath", str(ROOT / "build" / "pyinstaller"),
@@ -61,16 +95,29 @@ def main() -> int:
         "--hidden-import", "fastapi",
         "--hidden-import", "pynput",
         "--hidden-import", "pyperclip",
-        str(ENGINE / "localditado" / "__main__.py"),
+        *nvidia_binary_args(),
+        "--add-data", f"{ROOT.parent / 'profiles'}{data_separator()}profiles",
+        "--add-data", f"{ROOT.parent / 'prompts'}{data_separator()}prompts",
+        str(ENGINE / "localditado" / "_binary_entry.py"),
     ]
     print("Running:", " ".join(cmd))
     subprocess.run(cmd, check=True, cwd=str(ENGINE))
 
-    produced = OUT_DIR / f"{NAME}{ext}"
-    final = OUT_DIR / f"{NAME}-{triple}{ext}"
-    if produced.exists():
-        shutil.move(str(produced), str(final))
-    print(f"Sidecar ready: {final}")
+    bundle_dir = OUT_DIR / NAME  # binaries/local-ditado-engine/
+    if not bundle_dir.exists():
+        raise SystemExit(f"PyInstaller did not produce {bundle_dir}")
+
+    # Remove any leftover single-file binary from the old --onefile builds.
+    for stale in OUT_DIR.glob(f"{NAME}-*"):
+        if stale.is_file():
+            stale.unlink()
+            print(f"Removed stale onefile binary: {stale.name}")
+
+    # Make the sidecar findable next to the dev and release executables.
+    tauri = ROOT / "src-tauri"
+    _copy_bundle(bundle_dir, tauri / "target" / "debug" / "binaries")
+    _copy_bundle(bundle_dir, tauri / "target" / "release" / "binaries")
+    print(f"Sidecar ready: {bundle_dir}")
     return 0
 
 

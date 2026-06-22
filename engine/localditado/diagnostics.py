@@ -52,6 +52,9 @@ def build_report(config_path=None) -> dict:
                 "onnxruntime",
                 "vosk",
                 "noisereduce",
+                "deepfilternet",
+                "nemo_toolkit",
+                "llama-cpp-python",
             )
         },
         "input_devices": devices,

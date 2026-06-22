@@ -7,6 +7,7 @@
     "frontendDist": "../src"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "Local Ditado",
@@ -34,6 +35,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "externalBin": ["binaries/local-ditado-engine"]
+    "resources": ["binaries/local-ditado-engine/**/*"]
   }
 }

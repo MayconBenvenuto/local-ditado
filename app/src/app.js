@@ -1,33 +1,86 @@
 // Frontend do Local Ditado. Conversa com o sidecar Python (FastAPI + WebSocket).
 // Descobre o endereço do sidecar via Tauri (comando `get_server`) ou via ?api= no dev.
 
+const DEFAULT_PROFILES = ["equilibrado", "precisao", "rapido"];
 const state = { base: null, ws: null, config: {} };
 
-async function discoverServer() {
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function normalizeBase(url) {
+  return String(url || "").replace(/\/+$/, "");
+}
+
+async function discoverServer({ preferQuery = true } = {}) {
   // 1) Override de desenvolvimento: ?api=http://127.0.0.1:8000
   const params = new URLSearchParams(location.search);
-  if (params.get("api")) return params.get("api");
+  if (preferQuery && params.get("api")) return normalizeBase(params.get("api"));
 
   // 2) Via Tauri: o shell em Rust lê a porta do sidecar e expõe em get_server.
   if (window.__TAURI__?.core?.invoke) {
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; ; i++) {
       try {
         const info = await window.__TAURI__.core.invoke("get_server");
-        if (info && info.ready) return `http://${info.host}:${info.port}`;
+        if (info?.error) {
+          setConn(false, info.error);
+          return null;
+        }
+        if (info && info.ready) return normalizeBase(`http://${info.host}:${info.port}`);
       } catch (_) { /* ainda subindo */ }
-      await new Promise((r) => setTimeout(r, 500));
+      if (i === 60) setConn(false, "sidecar iniciando…");
+      if (i === 180) setConn(false, "sidecar ainda carregando…");
+      await sleep(500);
     }
   }
   return null;
 }
 
-async function api(path, options = {}) {
-  const res = await fetch(state.base + path, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  if (!res.ok) throw new Error(`${res.status} ${path}`);
-  return res.status === 204 ? null : res.json();
+async function readJson(res, path) {
+  const text = await res.text();
+  if (!res.ok) throw new Error(`${res.status} ${path}: ${text.slice(0, 120)}`);
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    error.nonJsonResponse = true;
+    error.message = `resposta não-JSON de ${res.url || path}: ${text.trim().slice(0, 80)}`;
+    throw error;
+  }
+}
+
+async function api(path, options = {}, retry = true) {
+  if (!state.base) {
+    state.base = await discoverServer({ preferQuery: false });
+  }
+  if (!state.base) {
+    setConn(false, "sidecar não conectado");
+    throw new Error("sidecar não conectado");
+  }
+  let res;
+  try {
+    res = await fetch(state.base + path, {
+      headers: { "Content-Type": "application/json" },
+      ...options,
+    });
+  } catch (error) {
+    // A network-level failure ("Failed to fetch") means the cached base is stale —
+    // the sidecar picks a new ephemeral port on each launch. Re-discover and retry.
+    if (!retry || !window.__TAURI__?.core?.invoke) throw error;
+    const rediscovered = await discoverServer({ preferQuery: false });
+    if (!rediscovered) throw error;
+    state.base = rediscovered;
+    return api(path, options, false);
+  }
+  try {
+    return await readJson(res, path);
+  } catch (error) {
+    if (!retry || !error.nonJsonResponse || !window.__TAURI__?.core?.invoke) throw error;
+    const rediscovered = await discoverServer({ preferQuery: false });
+    if (!rediscovered || rediscovered === state.base) throw error;
+    state.base = rediscovered;
+    return api(path, options, false);
+  }
 }
 
 function setConn(ok, text) {
@@ -36,10 +89,15 @@ function setConn(ok, text) {
 }
 
 // ---------------------------- WebSocket de eventos ----------------------------
-function connectWs() {
-  const url = state.base.replace("http", "ws") + "/ws";
+async function connectWs() {
+  // The sidecar picks a fresh ephemeral port on each launch, so on every
+  // (re)connect we re-discover the address instead of reusing a stale port.
+  state.base = await discoverServer({ preferQuery: false });
+  if (!state.base) { setTimeout(connectWs, 1500); return; }
+  const url = state.base.replace(/^http/, "ws") + "/ws";
   state.ws = new WebSocket(url);
   state.ws.onopen = () => setConn(true, "conectado");
+  state.ws.onerror = () => { try { state.ws.close(); } catch (_) { /* ignore */ } };
   state.ws.onclose = () => { setConn(false, "desconectado"); setTimeout(connectWs, 1500); };
   state.ws.onmessage = (ev) => handleEvent(JSON.parse(ev.data));
 }
@@ -76,6 +134,7 @@ function setDictating(recording, status) {
 function showView(name) {
   document.querySelectorAll(".nav-item").forEach((b) => b.classList.toggle("active", b.dataset.view === name));
   document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.id === "view-" + name));
+  if (name === "settings") loadConfig();
   if (name === "history") loadHistory();
   if (name === "diagnostics") loadDiagnostics();
   if (name === "models") loadModels();
@@ -97,18 +156,48 @@ async function loadStatus() {
 }
 
 // ---------------------------- Configurações ----------------------------
+function setSelectOptions(select, options, selectedValue = "") {
+  select.replaceChildren();
+  for (const option of options) {
+    const el = document.createElement("option");
+    el.value = option.value;
+    el.textContent = option.label;
+    select.appendChild(el);
+  }
+  select.value = selectedValue;
+}
+
 async function loadConfig() {
   const cfg = await api("/api/config");
   state.config = cfg;
-  const profs = await api("/api/profiles");
+
   const profSel = document.getElementById("cfg-profile");
-  profSel.innerHTML = profs.profiles.map((p) => `<option value="${p}">${p}</option>`).join("");
-  profSel.value = cfg.active_profile;
+  setSelectOptions(
+    profSel,
+    DEFAULT_PROFILES.map((p) => ({ value: p, label: p })),
+    cfg.active_profile || "equilibrado"
+  );
+
+  const profs = await api("/api/profiles");
+  const profiles = Array.isArray(profs.profiles) && profs.profiles.length
+    ? profs.profiles
+    : DEFAULT_PROFILES;
+  if (!profiles.includes(cfg.active_profile)) profiles.unshift(cfg.active_profile);
+  setSelectOptions(profSel, profiles.map((p) => ({ value: p, label: p })), cfg.active_profile);
+
+  const devSel = document.getElementById("cfg-device");
+  setSelectOptions(devSel, [{ value: "", label: "Padrão do sistema" }], cfg.device_name || "");
 
   const devs = await api("/api/devices");
-  const devSel = document.getElementById("cfg-device");
-  devSel.innerHTML = `<option value="">Padrão do sistema</option>` +
-    devs.devices.map((d) => `<option value="${d.name}">${d.name}</option>`).join("");
+  const devices = (devs.devices || []).map((d) => ({
+    value: d.name,
+    label: `${d.name} (${Math.round(d.default_sample_rate)} Hz)`,
+  }));
+  setSelectOptions(
+    devSel,
+    [{ value: "", label: "Padrão do sistema" }, ...devices],
+    cfg.device_name || ""
+  );
   if (cfg.device_name) devSel.value = cfg.device_name;
 
   document.getElementById("cfg-model").value = cfg.whisper_model || "auto";
@@ -130,13 +219,14 @@ async function loadConfig() {
 }
 
 document.getElementById("btn-save").addEventListener("click", async () => {
+  const silenceSeconds = parseFloat(document.getElementById("cfg-silence").value);
   const patch = {
     active_profile: document.getElementById("cfg-profile").value,
     device_name: document.getElementById("cfg-device").value || null,
-    whisper_model: document.getElementById("cfg-model").value,
-    language: document.getElementById("cfg-language").value,
-    hotkey: document.getElementById("cfg-hotkey").value,
-    silence_seconds: parseFloat(document.getElementById("cfg-silence").value),
+    whisper_model: document.getElementById("cfg-model").value || "auto",
+    language: document.getElementById("cfg-language").value || "pt",
+    hotkey: document.getElementById("cfg-hotkey").value.trim() || "ctrl+alt+d",
+    silence_seconds: Number.isFinite(silenceSeconds) ? silenceSeconds : 1.5,
     vad: document.getElementById("cfg-vad").checked ? "silero" : "rms",
     denoise: document.getElementById("cfg-denoise").checked,
     voice_commands: document.getElementById("cfg-voice").checked,
@@ -146,11 +236,19 @@ document.getElementById("btn-save").addEventListener("click", async () => {
     save_recordings: document.getElementById("cfg-rec").checked,
   };
   const status = document.getElementById("save-status");
+  const button = document.getElementById("btn-save");
+  button.disabled = true;
   status.textContent = "salvando…";
-  await api("/api/config", { method: "POST", body: JSON.stringify(patch) });
-  await api("/api/autostart", { method: "POST", body: JSON.stringify({ enabled: document.getElementById("cfg-autostart").checked }) });
-  status.textContent = "salvo ✓ (motor recarregando se necessário)";
-  loadStatus();
+  try {
+    state.config = await api("/api/config", { method: "POST", body: JSON.stringify(patch) });
+    await api("/api/autostart", { method: "POST", body: JSON.stringify({ enabled: document.getElementById("cfg-autostart").checked }) });
+    status.textContent = "salvo ✓ (motor recarregando se necessário)";
+    loadStatus();
+  } catch (e) {
+    status.textContent = "erro ao salvar: " + e.message;
+  } finally {
+    button.disabled = false;
+  }
 });
 
 // ---------------------------- Dicionário ----------------------------
@@ -221,9 +319,9 @@ function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 // ---------------------------- Boot ----------------------------
 (async function boot() {
   setConn(false, "procurando sidecar…");
-  state.base = await discoverServer();
-  if (!state.base) { setConn(false, "sidecar não encontrado"); return; }
   try {
+    state.base = await discoverServer();
+    if (!state.base) { setConn(false, "sidecar não encontrado"); return; }
     await loadConfig();
     await loadStatus();
     renderDict();
