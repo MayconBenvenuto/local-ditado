@@ -2,6 +2,9 @@
 // Descobre o endereço do sidecar via Tauri (comando `get_server`) ou via ?api= no dev.
 
 const DEFAULT_PROFILES = ["equilibrado", "precisao", "rapido"];
+// Profile keys are ASCII filenames; show accented pt-BR labels in the UI.
+const PROFILE_LABELS = { equilibrado: "equilibrado", precisao: "precisão", rapido: "rápido" };
+const profileLabel = (key) => PROFILE_LABELS[key] || key;
 const state = { base: null, ws: null, config: {} };
 
 function sleep(ms) {
@@ -151,7 +154,7 @@ async function loadStatus() {
   try {
     const s = await api("/api/status");
     if (s.engine) document.getElementById("stat-engine").textContent = `${s.engine}/${s.model}`;
-    document.getElementById("stat-profile").textContent = s.profile || "—";
+    document.getElementById("stat-profile").textContent = s.profile ? profileLabel(s.profile) : "—";
   } catch (_) {}
 }
 
@@ -174,7 +177,7 @@ async function loadConfig() {
   const profSel = document.getElementById("cfg-profile");
   setSelectOptions(
     profSel,
-    DEFAULT_PROFILES.map((p) => ({ value: p, label: p })),
+    DEFAULT_PROFILES.map((p) => ({ value: p, label: profileLabel(p) })),
     cfg.active_profile || "equilibrado"
   );
 
@@ -183,7 +186,7 @@ async function loadConfig() {
     ? profs.profiles
     : DEFAULT_PROFILES;
   if (!profiles.includes(cfg.active_profile)) profiles.unshift(cfg.active_profile);
-  setSelectOptions(profSel, profiles.map((p) => ({ value: p, label: p })), cfg.active_profile);
+  setSelectOptions(profSel, profiles.map((p) => ({ value: p, label: profileLabel(p) })), cfg.active_profile);
 
   const devSel = document.getElementById("cfg-device");
   setSelectOptions(devSel, [{ value: "", label: "Padrão do sistema" }], cfg.device_name || "");
